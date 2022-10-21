@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import styled from "styled-components";
 import { mobile } from "../responsive";
 import axios from 'axios'
+import Table from '@material-ui/core/Table';
+import TableBody from '@material-ui/core/TableBody';  
+import TableCell from '@material-ui/core/TableCell'; 
+import TableHead from '@material-ui/core/TableHead';  
+import TableRow from '@material-ui/core/TableRow'; 
 
 
 const Container = styled.div`
@@ -76,6 +81,24 @@ const s_to_d = {
   color: "white"
 }
 
+const hscode = {
+  marginTop: "2rem",
+  width: "100%"
+}
+
+const text_area = {
+  width: "97.5%",
+  height: "15rem",
+  padding: "1rem"
+}
+
+const table_styles = {
+  width: "100%",
+  marginTop: "1rem",
+  border: "2px solid #d3d3d3",
+  boxShadow: "2px 2px 2px 2px #d3d3d3"
+}
+
 // API response
 const res = {
   days: 20,
@@ -84,24 +107,53 @@ const res = {
   price: 200
 }
 
-const submit = () => {
-
-}
-
 const Form = () => {
     const [source, setSource] = useState('');
     const [dest, setDest] = useState('');
     const [desc, setDesc] = useState('');
     const [weight, setWeight] = useState('');
 
+    const [error, setError] = useState(false);
+
+    const [showRrouteResults, setShowRrouteResults] = useState(false);
+
     const [sourceTxt, setSourceTxt] = useState('Yet to be decided');
     const [destTxt, setDestTxt] = useState('Yet to be decided');
     const [descTxt, setDescTxt] = useState('Yet to be decided');
+
+    const submit = () => {
+      if(source === '' || dest === '' || desc === '' || weight === '') {
+        setError(true);
+      } else {
+        setShowRrouteResults(true)
+        setError(false)
+      }
+    }
+
+    const rows = [
+      createData('Frozen yoghurt', 159, 6.0, 24, 4.0),
+      createData('Ice cream sandwich', 237, 9.0, 37, 4.3),
+      createData('Eclair', 262, 16.0, 24, 6.0),
+      createData('Cupcake', 305, 3.7, 67, 4.3),
+      createData('Gingerbread', 356, 16.0, 49, 3.9),
+    ];
+
+    function createData(
+      name,
+      calories,
+      fat,
+      carbs,
+      protein,
+    ) {
+      return { name, calories, fat, carbs, protein };
+    }
+
     return (
     <Container>
+        { error && <div style={{ color: "red", textAlign: "center" }}>Please enter all the details</div> }
         <Title>Tell us about your shipment</Title>
         <Wrapper>
-            <InputContainer>
+            <InputContainer style={{ marginRight: "1rem" }}>
                 <Input placeholder="Enter source point" name="source" maxLength={"6"} minLenght={"6"} onChange={async (e) => {
                     setSource(e.target.value);
                     if(e.target.value.length === 6) {
@@ -111,7 +163,7 @@ const Form = () => {
                     }
                 }} />
             </InputContainer>
-            <InputContainer>
+            <InputContainer style={{ marginRight: "1rem" }}>
                 <Input placeholder="Enter destination point" name='dest' maxLength={"6"} minLenght={"6"} value={dest} onChange={async (e) => {
                     setDest(e.target.value);
                     if(e.target.value.length === 6) {
@@ -121,12 +173,12 @@ const Form = () => {
                     }
                 }} />
             </InputContainer>
-            <InputContainer>
+            <InputContainer style={{ marginRight: "1rem" }}>
                 <Input placeholder="Enter description of the pkg" name="desc" value={desc} onChange={(e) => {
                     setDesc(e.target.value)
                 }} />
             </InputContainer>
-            <InputContainer>
+            <InputContainer style={{ marginRight: "1rem" }}>
                 <Input type="number" name="weight" placeholder="Enter weight of the pkg in kgs" value={weight} onChange={(e) => {
                     setWeight(e.target.value)
                 }} />
@@ -143,7 +195,7 @@ const Form = () => {
         </Button>
 
         {/* showing routes */}
-        <div style={{ fontSize: "1rem", border: "2px solid #d3d3d3", padding: "1.5rem 1rem", marginTop: "2rem",  borderRadius: "5px" }}>
+        { showRrouteResults &&         <div style={{ fontSize: "1rem", border: "2px solid #d3d3d3", padding: "1.5rem 1rem", marginTop: "2rem",  borderRadius: "5px" }}>
           <div className="header" style={{ display: "flex" }}>
             <div className="s_to_d" style={s_to_d}>
               {"PORT"}<strong><i className="fa-solid fa-arrow-right" style={{ margin: "0 0.5rem", color: '#f85e00' }}></i></strong>{"DOOR"}
@@ -163,9 +215,9 @@ const Form = () => {
           <div className="route">
           {sourceTxt}<strong><i className="fa-solid fa-arrow-right" style={{ margin: "0 0.5rem", color: '#f85e00' }}></i></strong>{destTxt}
           </div>
-        </div>
+        </div> }
         {/* show results */}
-        <div className="results">
+        { showRrouteResults &&         <div className="results">
           <div className="row" style={{ display: "flex", border: "2px solid #d3d3d3", padding: "1.5rem 1rem", marginTop: "2rem", }}>
             <div className="details" style={{ width: "80%", borderRight: "2px solid black" }}>
                 <div className="mode" style={{ display: "flex" }}>
@@ -182,6 +234,38 @@ const Form = () => {
               <Title style={{ textAlign: "center", marginTop: "auto" }}>{res.price}$</Title>
             </div>
           </div>
+        </div> }
+        {/* top 10 HS code */}
+        <div style={hscode}>
+          <Title>Predict your HS Code here</Title>
+          <textarea style={text_area}></textarea>
+          <Table sx={{ minWidth: 650 }} aria-label="simple table" style={table_styles}>
+            <TableHead>
+              <TableRow>
+                <TableCell>Dessert (100g serving)</TableCell>
+                <TableCell align="right">Calories</TableCell>
+                <TableCell align="right">Fat&nbsp;(g)</TableCell>
+                <TableCell align="right">Carbs&nbsp;(g)</TableCell>
+                <TableCell align="right">Protein&nbsp;(g)</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow
+                  key={row.name}
+                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                >
+                  <TableCell component="th" scope="row">
+                    {row.name}
+                  </TableCell>
+                  <TableCell align="right">{row.calories}</TableCell>
+                  <TableCell align="right">{row.fat}</TableCell>
+                  <TableCell align="right">{row.carbs}</TableCell>
+                  <TableCell align="right">{row.protein}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
     </Container>
     )
