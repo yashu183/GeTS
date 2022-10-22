@@ -114,6 +114,8 @@ const Form = () => {
     const [weight, setWeight] = useState('');
 
     const [error, setError] = useState(false);
+    const [apiError, setApiError] = useState(false);
+    const [postalError, setPostalError] = useState(false);
 
     const [showRrouteResults, setShowRrouteResults] = useState(false);
 
@@ -138,21 +140,62 @@ const Form = () => {
       } else {
         setShowRrouteResults(true);
         setError(false);
-        const data = await axios.get(`http://54.208.149.136:5000/route/v1/driving/${sourceLat},${sourceLon};${destLat},${destLon}?steps=true`);
-        console.log(data);
-        const steps = data.data.routes[0].legs[0].steps;
-        const locations = []
-        var dist = 0;
-        var duration = 0;
-        steps.forEach(async (step) => {
-          console.log(step)
-          dist += step.distance;
-          duration += step.duration;
-          const location = await axios.get(`https://nominatim.openstreetmap.org/reverse?lat=${step.maneuver.location[0]}&lon=${step.maneuver.location[1]}&format=jsonv2`);
-          console.log(location);
-          locations.push(location.display_name);
-        })
-        console.log(locations, dist, duration);
+        // const data = await axios.get(`http://54.208.149.136:5000/route/v1/driving/${sourceLat},${sourceLon};${destLat},${destLon}?steps=true`);
+        // console.log(data);
+        // const steps = data.data.routes[0].legs[0].steps;
+        // const locations = []
+        // var dist = 0;
+        // var duration = 0;
+        // steps.forEach(async (step) => {
+        //   console.log(step)
+        //   dist += step.distance;
+        //   duration += step.duration;
+        //   const location = await axios.get(`https://nominatim.openstreetmap.org/reverse?lat=${step.maneuver.location[0]}&lon=${step.maneuver.location[1]}&format=jsonv2`);
+        //   console.log(location);
+        //   locations.push(location.display_name);
+        // })
+        // console.log(locations, dist, duration);
+        // const lat1 = sourceLat;
+        // const long1 = sourceLon;
+        // const lat2 = destLat;
+        // const long2 = destLon;
+         
+        // // Haversine Formula
+        // const dlong = long2 - long1;
+        // const dlat = lat2 - lat1;
+     
+        // var ans = Math.pow(Math.sin(dlat / 2), 2) +
+        //                       Math.cos(lat1) * Math.cos(lat2) *
+        //                       Math.pow(Math.sin(dlong / 2), 2);
+     
+        // ans = 2 * Math.asin(Math.sqrt(ans));
+     
+        // const R = 6371;
+         
+        // ans = ans * R; // in kms
+        var radlat1 = Math.PI * sourceLat/180;
+        var radlat2 = Math.PI * destLat/180;
+        var theta = sourceLon-destLon;
+        var radtheta = Math.PI * theta/180;
+        var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+        if (dist > 1) {
+          dist = 1;
+        }
+        dist = Math.acos(dist);
+        dist = dist * 180/Math.PI;
+        dist = dist * 60 * 1.1515;
+        dist = dist * 1.609344
+        // if (unit=="N") { dist = dist * 0.8684 }
+        const ans = dist; // in kms
+        const numOfDays = Math.ceil((ans / 60)/24) // in days
+        const cost = (ans*0.6) + (weight*0.3) // in USD
+        const routes = {
+          distance: ans,
+          days: numOfDays,
+          mode: "Land",
+          price: cost
+        }
+        setRoutesResponse(routes)
       }
     }
 
@@ -176,7 +219,8 @@ const Form = () => {
 
     return (
     <Container>
-        { error && <div style={{ color: "red", textAlign: "center" }}>Please enter all the details</div> }
+        { error && <div style={{ color: "red", textAlign: "center", marginBottom: "1rem" }}>Please enter all the details</div> }
+        { postalError && <div style={{ color: "red", textAlign: "center", marginBottom: "1rem" }}>Either source or destination postal code is wrong. Please enter correct code.</div> }
         <Title>Tell us about your shipment</Title>
         <Wrapper>
             <InputContainer style={{ marginRight: "1rem" }}>
@@ -185,13 +229,21 @@ const Form = () => {
                     setSource(e.target.value);
                     if(e.target.value.length === 6) {
                         const res = await axios.get(`https://flux.freightos.com/api/v1/geocoder/autocomplete?searchTerm=${source}&filters=country:IN&language=en`);
-                        console.log(res["data"]["predictions"][0]["label"]);
-                        setSourceTxt(res["data"]["predictions"][0]["label"]);
-
-                        const latLon = await axios.get(`https://nominatim.openstreetmap.org/search.php?q=${res["data"]["predictions"][0]["label"].split(',')[0]}&polygon_geojson=1&format=jsonv2`);
+                        if(res["data"]["predictions"][0]?.label) {
+                          setSourceTxt(res["data"]["predictions"][0]["label"]);
+                          setPostalError(false)
+                          const latLon = await axios.get(`https://nominatim.openstreetmap.org/search.php?q=${res["data"]["predictions"][0]["label"].split(',')[0]}&polygon_geojson=1&format=jsonv2`);
                         console.log(latLon)
-                        setSourceLat(latLon.data[0].lat);
-                        setSourceLon(latLon.data[0].lon);
+                        if(latLon.data[0].lat && setSourceLon(latLon.data[0].lon)) {
+                          setSourceLat(latLon.data[0].lat);
+                          setSourceLon(latLon.data[0].lon);
+                          setApiError(false)
+                        } else {
+                          setApiError(true)
+                        }
+                        } else {
+                          setPostalError(true)
+                        }
                         setShowLoadingSource(false);
                     }
                 }} />
@@ -202,13 +254,21 @@ const Form = () => {
                     setDest(e.target.value);
                     if(e.target.value.length === 6) {
                       const res = await axios.get(`https://flux.freightos.com/api/v1/geocoder/autocomplete?searchTerm=${dest}&filters=country:IN&language=en`);
-                      console.log(res["data"]["predictions"][0]["label"]);
-                      setDestTxt(res["data"]["predictions"][0]["label"]);
-
-                      const latLon = await axios.get(`https://nominatim.openstreetmap.org/search.php?q=${res["data"]["predictions"][0]["label"].split(',')[0]}&polygon_geojson=1&format=jsonv2`);
+                      if(res["data"]["predictions"][0].label) {
+                        setDestTxt(res["data"]["predictions"][0]["label"]);
+                        setPostalError(false)
+                        const latLon = await axios.get(`https://nominatim.openstreetmap.org/search.php?q=${res["data"]["predictions"][0]["label"].split(',')[0]}&polygon_geojson=1&format=jsonv2`);
                       console.log(latLon)
-                      setDestLat(latLon.data[0].lat);
-                      setDestLon(latLon.data[0].lon);
+                      if(latLon?.data[0]?.lat && latLon?.data[0]?.lon) {
+                        setDestLat(latLon.data[0].lat);
+                        setDestLon(latLon.data[0].lon);
+                        setApiError(false)
+                      } else {
+                        setApiError(true)
+                      }
+                      }else {
+                        setPostalError(true)
+                      }
                       setShowLoadingDest(false);
                     }
                 }} />
@@ -225,6 +285,7 @@ const Form = () => {
             </InputContainer>
         </Wrapper>
         <Title style={{ marginTop: "2rem", marginBottom: "0.75rem" }}>Your Shipment Summary</Title>
+        { apiError && <div style={{ color: "red", textAlign: "center" }}>Please enter all the details</div> }
         <Summary style={{ marginBottom: "0.5rem" }}>
             <div style={{ display: "flex" }}><SubTitle style={{ marginRight: "0.5rem" }}>Source : </SubTitle>  <p style={{ fontSize: "16px" }}>{!showLoadingSource && sourceTxt} {showLoadingSource && "Loading..."}</p></div>
             <div style={{ display: "flex" }}><SubTitle style={{ marginRight: "0.5rem" }}>Destination : </SubTitle>  <p style={{ fontSize: "16px" }}>{!showLoadingDest && destTxt} {showLoadingDest && "Loading..."}</p></div>
@@ -261,17 +322,21 @@ const Form = () => {
           <div className="row" style={{ display: "flex", border: "2px solid #d3d3d3", padding: "1.5rem 1rem", marginTop: "2rem", }}>
             <div className="details" style={{ width: "80%", borderRight: "2px solid black" }}>
                 <div className="mode" style={{ display: "flex" }}>
-                  <SubTitle style={{ fontSize: "1rem", marginRight: "0.5rem" }}>Mode: </SubTitle> <p style={{ fontSize: "1.1rem" }}>{res.mode}</p>
+                  <SubTitle style={{ fontSize: "1rem", marginRight: "0.5rem" }}>Mode : </SubTitle> <p style={{ fontSize: "1.1rem" }}>{routesResponse.mode}</p>
+                </div>
+                <div className="distance" style={{ display: "flex" }}>
+                  <SubTitle style={{ fontSize: "1rem", marginRight: "0.5rem" }}>Distance : </SubTitle> <p style={{ fontSize: "1.1rem" }}>{Math.round(routesResponse.distance * 100) / 100} Kms</p>
                 </div>
                 <div className="days" style={{ display: "flex" }}>
-                  <SubTitle style={{ fontSize: "1rem", marginRight: "0.5rem" }}>Days: </SubTitle> <p style={{ fontSize: "1.1rem" }}>{res.days}</p>
+                  <SubTitle style={{ fontSize: "1rem", marginRight: "0.5rem" }}>Num of Days : </SubTitle> <p style={{ fontSize: "1.1rem" }}>{routesResponse.days}</p>
                 </div>
                 <div className="route" style={{ display: "flex" }}>
-                  <SubTitle style={{ fontSize: "1rem", marginRight: "0.5rem" }}>Route: </SubTitle> <p style={{ fontSize: "1.1rem" }}>{res.route}</p>
+                  <SubTitle style={{ fontSize: "1rem", marginRight: "0.5rem" }}>Route : </SubTitle> <p style={{ fontSize: "1.1rem" }}>{sourceTxt.split(',')[0]}<strong><i className="fa-solid fa-arrow-right" style={{ margin: "0 0.5rem", color: '#f85e00' }}></i></strong>{destTxt.split(',')[0]}</p>
                 </div>
             </div>
             <div className="price" style={{ width: "20%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Title style={{ textAlign: "center", marginTop: "auto" }}>{res.price}$</Title>
+              <SubTitle style={{ textAlign: "center" }}>Cost : </SubTitle>
+              <Title style={{ textAlign: "center", marginTop: "auto", color:'#f85e00' }}>{Math.round(routesResponse.price * 100) / 100} $</Title>
             </div>
           </div>
         </div> }
