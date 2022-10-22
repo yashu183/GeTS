@@ -117,16 +117,42 @@ const Form = () => {
 
     const [showRrouteResults, setShowRrouteResults] = useState(false);
 
+    const [showLoadingSource, setShowLoadingSource] = useState(false);
+    const [showLoadingDest, setShowLoadingDest] = useState(false);
+    const [showLoadingDesc, setShowLoadingDesc] = useState(false);
+
+    const [sourceLat, setSourceLat] = useState('');
+    const [sourceLon, setSourceLon] = useState('');
+    const [destLat, setDestLat] = useState('');
+    const [destLon, setDestLon] = useState('');
+
+    const [routesResponse, setRoutesResponse] = useState({})
+
     const [sourceTxt, setSourceTxt] = useState('Yet to be decided');
     const [destTxt, setDestTxt] = useState('Yet to be decided');
     const [descTxt, setDescTxt] = useState('Yet to be decided');
 
-    const submit = () => {
+    const submit = async () => {
       if(source === '' || dest === '' || desc === '' || weight === '') {
         setError(true);
       } else {
-        setShowRrouteResults(true)
-        setError(false)
+        setShowRrouteResults(true);
+        setError(false);
+        const data = await axios.get(`http://54.208.149.136:5000/route/v1/driving/${sourceLat},${sourceLon};${destLat},${destLon}?steps=true`);
+        console.log(data);
+        const steps = data.data.routes[0].legs[0].steps;
+        const locations = []
+        var dist = 0;
+        var duration = 0;
+        steps.forEach(async (step) => {
+          console.log(step)
+          dist += step.distance;
+          duration += step.duration;
+          const location = await axios.get(`https://nominatim.openstreetmap.org/reverse?lat=${step.maneuver.location[0]}&lon=${step.maneuver.location[1]}&format=jsonv2`);
+          console.log(location);
+          locations.push(location.display_name);
+        })
+        console.log(locations, dist, duration);
       }
     }
 
@@ -155,21 +181,35 @@ const Form = () => {
         <Wrapper>
             <InputContainer style={{ marginRight: "1rem" }}>
                 <Input placeholder="Enter source point" name="source" maxLength={"6"} minLenght={"6"} onChange={async (e) => {
+                    setShowLoadingSource(true);
                     setSource(e.target.value);
                     if(e.target.value.length === 6) {
                         const res = await axios.get(`https://flux.freightos.com/api/v1/geocoder/autocomplete?searchTerm=${source}&filters=country:IN&language=en`);
                         console.log(res["data"]["predictions"][0]["label"]);
                         setSourceTxt(res["data"]["predictions"][0]["label"]);
+
+                        const latLon = await axios.get(`https://nominatim.openstreetmap.org/search.php?q=${res["data"]["predictions"][0]["label"].split(',')[0]}&polygon_geojson=1&format=jsonv2`);
+                        console.log(latLon)
+                        setSourceLat(latLon.data[0].lat);
+                        setSourceLon(latLon.data[0].lon);
+                        setShowLoadingSource(false);
                     }
                 }} />
             </InputContainer>
             <InputContainer style={{ marginRight: "1rem" }}>
                 <Input placeholder="Enter destination point" name='dest' maxLength={"6"} minLenght={"6"} value={dest} onChange={async (e) => {
+                    setShowLoadingDest(true)
                     setDest(e.target.value);
                     if(e.target.value.length === 6) {
-                        const res = await axios.get(`https://flux.freightos.com/api/v1/geocoder/autocomplete?searchTerm=${dest}&filters=country:IN&language=en`);
-                        console.log(res);
-                        setDestTxt(res["data"]["predictions"][0]["label"]);
+                      const res = await axios.get(`https://flux.freightos.com/api/v1/geocoder/autocomplete?searchTerm=${dest}&filters=country:IN&language=en`);
+                      console.log(res["data"]["predictions"][0]["label"]);
+                      setDestTxt(res["data"]["predictions"][0]["label"]);
+
+                      const latLon = await axios.get(`https://nominatim.openstreetmap.org/search.php?q=${res["data"]["predictions"][0]["label"].split(',')[0]}&polygon_geojson=1&format=jsonv2`);
+                      console.log(latLon)
+                      setDestLat(latLon.data[0].lat);
+                      setDestLon(latLon.data[0].lon);
+                      setShowLoadingDest(false);
                     }
                 }} />
             </InputContainer>
@@ -186,9 +226,9 @@ const Form = () => {
         </Wrapper>
         <Title style={{ marginTop: "2rem", marginBottom: "0.75rem" }}>Your Shipment Summary</Title>
         <Summary style={{ marginBottom: "0.5rem" }}>
-            <div style={{ display: "flex" }}><SubTitle style={{ marginRight: "0.5rem" }}>Source : </SubTitle>  <p style={{ fontSize: "16px" }}>{sourceTxt}</p></div>
-            <div style={{ display: "flex" }}><SubTitle style={{ marginRight: "0.5rem" }}>Destination : </SubTitle>  <p style={{ fontSize: "16px" }}>{destTxt}</p></div>
-            <div style={{ display: "flex" }}><SubTitle style={{ marginRight: "0.5rem" }}>HS Code : </SubTitle>  <p style={{ fontSize: "16px" }}>{descTxt}</p></div>
+            <div style={{ display: "flex" }}><SubTitle style={{ marginRight: "0.5rem" }}>Source : </SubTitle>  <p style={{ fontSize: "16px" }}>{!showLoadingSource && sourceTxt} {showLoadingSource && "Loading..."}</p></div>
+            <div style={{ display: "flex" }}><SubTitle style={{ marginRight: "0.5rem" }}>Destination : </SubTitle>  <p style={{ fontSize: "16px" }}>{!showLoadingDest && destTxt} {showLoadingDest && "Loading..."}</p></div>
+            <div style={{ display: "flex" }}><SubTitle style={{ marginRight: "0.5rem" }}>HS Code : </SubTitle>  <p style={{ fontSize: "16px" }}>{!showLoadingDesc && descTxt} {showLoadingDesc && "Loading..."}</p></div>
         </Summary>
         <Button onClick={submit}>
             Submit
