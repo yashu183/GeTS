@@ -2,6 +2,7 @@ import React from "react";
 import styled from "styled-components";
 import { mobile } from "../responsive";
 import { useSelector } from "react-redux";
+import { Link } from "react-router-dom";
 
 
 const Container = styled.div`
@@ -41,12 +42,13 @@ const Right = styled.div`
   ${mobile({ flex: 2, justifyContent: "center" })}
 `;
 
-const MenuItem = styled.div`
-  font-size: 14px;
-  cursor: pointer;
-  margin-left: 25px;
-  ${mobile({ fontSize: "12px", marginLeft: "10px" })}
-`;
+const menu_item = {
+  fontSize: "14px",
+  cursor: "pointer",
+  marginLeft: "25px",
+  textDecoration: "none",
+  color: "black"
+};
 
 const Navbar = () => {
   const quantity = useSelector(state=>state.cart.quantity)
@@ -59,8 +61,9 @@ const Navbar = () => {
           <Logo>PARETO</Logo>
         </Center>
         <Right>
-          <MenuItem>REGISTER</MenuItem>
-          <MenuItem>SIGN IN</MenuItem>
+          <Link style={menu_item} to="/dashboard">DASHBOARD</Link>
+          <Link style={menu_item} to="/register">REGISTER</Link>
+          <Link style={menu_item} to="/login">LOGIN</Link>
         </Right>
       </Wrapper>
     </Container>
