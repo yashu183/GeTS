@@ -231,7 +231,7 @@ const Form = () => {
                         // const res = await axios.get(`https://flux.freightos.com/api/v1/geocoder/autocomplete?searchTerm=${source}&filters=country:IN&language=en`);
                         const res = await axios.get(`https://app.zipcodebase.com/landing_demo/?codes=${e.target.value}&country=`);
                         console.log(res)
-                        if(res["data"]["results"][e.target.value][0]) {
+                        if(res["data"]["results"][e.target.value][0].province && res["data"]["results"][e.target.value][0].state) {
                           setSourceTxt(res["data"]["results"][e.target.value][0].province + ', ' + res["data"]["results"][e.target.value][0].state + ', ' + res["data"]["results"][e.target.value][0].postal_code);
                           setPostalError(false)
                           setSourceLat(res["data"]["results"][e.target.value][0].latitude);
@@ -272,7 +272,7 @@ const Form = () => {
                       // }
                       const res = await axios.get(`https://app.zipcodebase.com/landing_demo/?codes=${e.target.value}&country=`);
                       console.log(res)
-                      if(res["data"]["results"][e.target.value][0]) {
+                      if(res["data"]["results"][e.target.value][0].province && res["data"]["results"][e.target.value][0].state) {
                         setDestTxt(res["data"]["results"][e.target.value][0].province + ', ' + res["data"]["results"][e.target.value][0].state + ', ' + res["data"]["results"][e.target.value][0].postal_code);
                         setPostalError(false)
                         setDestLat(res["data"]["results"][e.target.value][0].latitude);
