@@ -228,19 +228,23 @@ const Form = () => {
                     setShowLoadingSource(true);
                     setSource(e.target.value);
                     if(e.target.value.length === 6) {
-                        const res = await axios.get(`https://flux.freightos.com/api/v1/geocoder/autocomplete?searchTerm=${source}&filters=country:IN&language=en`);
-                        if(res["data"]["predictions"][0]?.label) {
-                          setSourceTxt(res["data"]["predictions"][0]["label"]);
+                        // const res = await axios.get(`https://flux.freightos.com/api/v1/geocoder/autocomplete?searchTerm=${source}&filters=country:IN&language=en`);
+                        const res = await axios.get(`https://app.zipcodebase.com/landing_demo/?codes=${e.target.value}&country=`);
+                        console.log(res)
+                        if(res["data"]["results"][e.target.value][0]) {
+                          setSourceTxt(res["data"]["results"][e.target.value][0].province + ', ' + res["data"]["results"][e.target.value][0].state + ', ' + res["data"]["results"][e.target.value][0].postal_code);
                           setPostalError(false)
-                          const latLon = await axios.get(`https://nominatim.openstreetmap.org/search.php?q=${res["data"]["predictions"][0]["label"].split(',')[0]}&polygon_geojson=1&format=jsonv2`);
-                        console.log(latLon)
-                        if(latLon.data[0].lat && setSourceLon(latLon.data[0].lon)) {
-                          setSourceLat(latLon.data[0].lat);
-                          setSourceLon(latLon.data[0].lon);
-                          setApiError(false)
-                        } else {
-                          setApiError(true)
-                        }
+                          setSourceLat(res["data"]["results"][e.target.value][0].latitude);
+                          setSourceLon(res["data"]["results"][e.target.value][0].longitude);
+                        //   const latLon = await axios.get(`https://nominatim.openstreetmap.org/search.php?q=${res["data"]["predictions"][0]["label"].split(',')[0]}&polygon_geojson=1&format=jsonv2`);
+                        // console.log(latLon)
+                        // if(latLon?.data[0]?.lat && setSourceLon(latLon?.data[0]?.lon)) {
+                          // setSourceLat(latLon.data[0].lat);
+                          // setSourceLon(latLon.data[0].lon);
+                        //   setApiError(false)
+                        // } else {
+                        //   setApiError(true)
+                        // }
                         } else {
                           setPostalError(true)
                         }
@@ -253,19 +257,26 @@ const Form = () => {
                     setShowLoadingDest(true)
                     setDest(e.target.value);
                     if(e.target.value.length === 6) {
-                      const res = await axios.get(`https://flux.freightos.com/api/v1/geocoder/autocomplete?searchTerm=${dest}&filters=country:IN&language=en`);
-                      if(res["data"]["predictions"][0].label) {
-                        setDestTxt(res["data"]["predictions"][0]["label"]);
+                      // const res = await axios.get(`https://flux.freightos.com/api/v1/geocoder/autocomplete?searchTerm=${dest}&filters=country:IN&language=en`);
+                      // if(res["data"]["predictions"][0]?.label) {
+                      //   setDestTxt(res["data"]["predictions"][0]["label"]);
+                      //   setPostalError(false)
+                      //   const latLon = await axios.get(`https://nominatim.openstreetmap.org/search.php?q=${res["data"]["predictions"][0]["label"].split(',')[0]}&polygon_geojson=1&format=jsonv2`);
+                      // console.log(latLon)
+                      // if(latLon?.data[0]?.lat && latLon?.data[0]?.lon) {
+                      //   setDestLat(latLon.data[0].lat);
+                      //   setDestLon(latLon.data[0].lon);
+                      //   setApiError(false)
+                      // } else {
+                      //   setApiError(true)
+                      // }
+                      const res = await axios.get(`https://app.zipcodebase.com/landing_demo/?codes=${e.target.value}&country=`);
+                      console.log(res)
+                      if(res["data"]["results"][e.target.value][0]) {
+                        setDestTxt(res["data"]["results"][e.target.value][0].province + ', ' + res["data"]["results"][e.target.value][0].state + ', ' + res["data"]["results"][e.target.value][0].postal_code);
                         setPostalError(false)
-                        const latLon = await axios.get(`https://nominatim.openstreetmap.org/search.php?q=${res["data"]["predictions"][0]["label"].split(',')[0]}&polygon_geojson=1&format=jsonv2`);
-                      console.log(latLon)
-                      if(latLon?.data[0]?.lat && latLon?.data[0]?.lon) {
-                        setDestLat(latLon.data[0].lat);
-                        setDestLon(latLon.data[0].lon);
-                        setApiError(false)
-                      } else {
-                        setApiError(true)
-                      }
+                        setDestLat(res["data"]["results"][e.target.value][0].latitude);
+                        setDestLon(res["data"]["results"][e.target.value][0].longitude);
                       }else {
                         setPostalError(true)
                       }
